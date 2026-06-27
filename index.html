@@ -73,6 +73,14 @@ html,body { width:100%; height:100%; background:var(--bg); color:var(--text); fo
 .sources-btn:hover, .sources-btn.active { color:var(--link-hover); border-color:var(--link); background:var(--active-bg); }
 .sources-btn:focus-visible { outline:2px solid var(--link); outline-offset:2px; }
 
+/* Overview nav item + landing CTA */
+.nav-overview { padding:12px 22px; cursor:pointer; font-family:var(--sans); font-size:14px; font-weight:600; color:var(--text); transition:background 0.15s, color 0.15s; border-left:2px solid transparent; }
+.nav-overview:hover { background:var(--hover-bg); }
+.nav-overview.active { background:var(--active-bg); color:var(--link); border-left-color:var(--accent); }
+.start-btn { margin-top:34px; font-family:var(--sans); font-size:15px; font-weight:600; color:#fff; background:var(--accent); border:none; border-radius:8px; padding:12px 22px; cursor:pointer; transition:background 0.15s; }
+.start-btn:hover { background:var(--link-hover); }
+.start-btn:focus-visible { outline:2px solid var(--link); outline-offset:2px; }
+
 .nav-section {
   padding:11px 22px; cursor:pointer; display:flex; align-items:center; gap:10px;
   font-size:14px; font-weight:600; color:var(--text);
@@ -1435,8 +1443,6 @@ One thing to keep in mind: "AI" is a catch-all term, and the same word means dif
 
 Here's how you can think about it: AI (that's in public use) is a lot like a new hire today. Picture a junior sales employee on their first day at the company. They have some basic skills and a lot of potential. But they need clear instructions, supervision, and the right tools to be useful. They are pretty junior and new in the company so they also don't have much access to resources right now. As they earn more access and gain more experience, they become more capable. And as they become more capable, the stakes of their work go up.
 
-That's the journey we're going on. AI today is our apprentice on day one. Everything that follows in this resource is about what happens as the apprentice grows.
-
 #### What's next in this section
 
 The rest of Section 1 zooms in on specific terms that get used a lot, often without much explanation:
@@ -2087,6 +2093,28 @@ const PRIMARY_SOURCES = `Every external source cited in the field guide in alpha
 - [Vending-Bench: A Benchmark for Long-Term Coherence of Autonomous Agents](https://andonlabs.com/evals/vending-bench) — Axel Backlund & Lukas Petersson (Andon Labs, 2025)
 - [When Do Experts Expect AGI to Arrive?](https://80000hours.org/2025/03/when-do-experts-expect-agi-to-arrive/) — Benjamin Todd (80,000 Hours, 2025)`;
 
+const OVERVIEW = `#### What this is
+
+This is a map of the foundational ideas, concepts, and debates that make up AI safety, the work of making advanced AI systems reliable, controllable, and beneficial for people. This resource focuses on the concepts that show up again and again, and how they interrelate.
+
+#### Who it's for
+
+If you are new to AI safety, especially from a non-technical background, and are unsure where to begin, or overwhelmed by your reading list, this guide can help you get oriented before you go deeper.
+
+#### A note from me
+
+This resource was born out of my interest in understanding what the AI safety field was all about. That turned out harder than I expected because resources were plentiful, opinions were strong, and almost all of them assumed I already understood the foundational ideas and concepts. Without this foundation, I opened at least 10 tabs for every one I closed.
+
+I wanted to dig deeper into the assumptions underneath the arguments, why those assumptions were true in the first place, why a thing mattered, what an approach was actually solving, how something worked, who it impacted, and how this current thing connected to that other thing I'd read three days ago. I had many questions (I still do but I can engage with them much more deeply than before) but what I wanted was a framework that could help me understand how different ideas fit together.
+
+This guide is my attempt to build that framework, the map I wish I'd had when I started exploring the AI safety field.
+
+— Kirti
+
+#### Status
+
+This is v1, and a living document. It reflects my current understanding and as I keep learning more, I'll keep revising it. If something looks wrong or unclear, I'd really like to hear it: [kirti.punia9@gmail.com](mailto:kirti.punia9@gmail.com) · [LinkedIn](https://www.linkedin.com/in/kirti-punia-686b476a/).`;
+
 /* ============================================================
    SEQUENCE + LOOKUPS
    ============================================================ */
@@ -2180,6 +2208,8 @@ function goBack() {
     if (sec) loadSectionIntro(sec, v.idx, 'back');
   } else if (v.type === 'primary') {
     loadPrimarySources('back');
+  } else if (v.type === 'overview') {
+    loadOverview('back');
   } else {
     loadNode(v.id, 'back');
   }
@@ -2217,10 +2247,11 @@ function loadNode(id, mode = 'normal') {
     el.classList.toggle('active', el.getAttribute('data-id') === id);
   });
   document.getElementById('sources-btn').classList.remove('active');
+  { const ov = document.getElementById('nav-overview'); if (ov) ov.classList.remove('active'); }
 
-  // Auto-expand section containing the active leaf
+  // Auto-expand section containing the active leaf (skip on initial page load)
   const parentSection = SECTIONS.find(s => s.children.some(c => c.id === id));
-  if (parentSection) {
+  if (parentSection && mode !== 'init') {
     document.querySelectorAll('.nav-section').forEach(el => {
       const isMatch = el.getAttribute('data-id') === parentSection.id;
       if (isMatch && !el.classList.contains('expanded')) {
@@ -2264,6 +2295,7 @@ function loadSectionIntro(sec, i, mode = 'normal') {
   nextBtn.classList.toggle('disabled', !hasNext);
   nextBtn.onclick = () => hasNext && loadNode(firstChild.id);
   document.getElementById('sources-btn').classList.remove('active');
+  { const ov = document.getElementById('nav-overview'); if (ov) ov.classList.remove('active'); }
 }
 
 function loadPrimarySources(mode = 'normal') {
@@ -2282,16 +2314,48 @@ function loadPrimarySources(mode = 'normal') {
   prevBtn.classList.add('disabled'); prevBtn.onclick = null;
   nextBtn.classList.add('disabled'); nextBtn.onclick = null;
   document.getElementById('sources-btn').classList.add('active');
+  { const ov = document.getElementById('nav-overview'); if (ov) ov.classList.remove('active'); }
+  updateBackButton();
+}
+
+function loadOverview(mode = 'normal') {
+  currentId = null;
+  currentView = { type: 'overview', label: 'Overview' };
+  if (mode === 'normal') backStack = [];
+  document.getElementById('main-tag').textContent = 'Overview';
+  document.getElementById('main-title').textContent = 'AI Safety Field Guide';
+  const body = document.querySelector('.main-body-inner');
+  body.innerHTML = renderInternalLinks(marked.parse(OVERVIEW));
+  attachLinkHandlers(body);
+  const startBtn = document.createElement('button');
+  startBtn.className = 'start-btn';
+  startBtn.type = 'button';
+  startBtn.textContent = 'Start reading →';
+  startBtn.addEventListener('click', () => loadNode('s1-1'));
+  body.appendChild(startBtn);
+  document.getElementById('main-body').scrollTop = 0;
+  document.querySelectorAll('.nav-leaf').forEach(el => el.classList.remove('active'));
+  const prevBtn = document.getElementById('prev-btn');
+  const nextBtn = document.getElementById('next-btn');
+  prevBtn.classList.add('disabled'); prevBtn.onclick = null;
+  nextBtn.classList.add('disabled'); nextBtn.onclick = null;
+  document.getElementById('sources-btn').classList.remove('active');
+  { const ov = document.getElementById('nav-overview'); if (ov) ov.classList.add('active'); }
   updateBackButton();
 }
 
 function buildNav() {
   const list = document.getElementById('nav-list');
+  const overviewEl = document.createElement('div');
+  overviewEl.className = 'nav-overview';
+  overviewEl.id = 'nav-overview';
+  overviewEl.textContent = 'Overview';
+  overviewEl.addEventListener('click', () => loadOverview());
+  list.appendChild(overviewEl);
   SECTIONS.forEach((sec, i) => {
     const secEl = document.createElement('div');
     secEl.className = 'nav-section';
     secEl.setAttribute('data-id', sec.id);
-    if (i === 0) secEl.classList.add('expanded');
     secEl.innerHTML = `
       <span class="nav-section-num">${String(i+1).padStart(2,'0')}</span>
       <span class="nav-section-name">${sec.label}</span>
@@ -2306,7 +2370,6 @@ function buildNav() {
 
     const leavesEl = document.createElement('div');
     leavesEl.className = 'nav-leaves';
-    if (i === 0) leavesEl.classList.add('expanded');
     let lastCategory = null;
     sec.children.forEach(c => {
       if (c.category && c.category !== lastCategory) {
@@ -2333,7 +2396,7 @@ function buildNav() {
 document.getElementById('back-btn').addEventListener('click', goBack);
 document.getElementById('sources-btn').addEventListener('click', () => loadPrimarySources());
 buildNav();
-loadNode('s1-1');
+loadOverview('init');
 </script>
 </body>
 </html>
